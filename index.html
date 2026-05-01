@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KST Rüzgar Casino</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --gold: #ffd700; --dark: #0b0b0b; --card: #1a1a1a; }
+        body { background: var(--dark); color: white; font-family: sans-serif; margin: 0; overflow: hidden; }
+        .screen { display: none; height: 100vh; flex-direction: column; }
+        .active { display: flex; }
+        .header { background: var(--card); padding: 15px; text-align: center; border-bottom: 2px solid var(--gold); font-weight: bold; }
+        
+        /* Lobi */
+        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; overflow-y: auto; }
+        .game-card { background: var(--card); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid #333; transition: 0.2s; }
+        .game-card:active { transform: scale(0.95); border-color: var(--gold); }
+        .game-card i { font-size: 35px; color: var(--gold); display: block; margin-bottom: 8px; }
+
+        /* Oyun Alanları */
+        .game-container { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        .display-box { font-size: 40px; background: #222; padding: 25px; border-radius: 15px; border: 2px solid var(--gold); margin-bottom: 20px; min-width: 200px; }
+        .btn-action { background: var(--gold); color: black; border: none; padding: 15px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; width: 80%; }
+        .btn-home { margin-top: 25px; color: #888; background: none; border: none; text-decoration: underline; font-size: 14px; }
+        
+        /* Kart/Okey Görseli */
+        .card-view { font-size: 60px; color: white; }
+    </style>
+</head>
+<body>
+
+    <div id="menu" class="screen active">
+        <div class="header">🎰 KST RÜZGAR LOBİ</div>
+        <div class="game-grid">
+            <div class="game-card" onclick="openGame('okey')"><i class="fas fa-layer-group"></i>OKEY 101</div>
+            <div class="game-card" onclick="openGame('poker')"><i class="fas fa-spade"></i>İSKAMBİL</div>
+            <div class="game-card" onclick="openGame('aviator')"><i class="fas fa-paper-plane"></i>AVIATOR</div>
+            <div class="game-card" onclick="openGame('slot')"><i class="fas fa-random"></i>SLOT</div>
+            <div class="game-card" onclick="openGame('zar')"><i class="fas fa-dice"></i>ZAR ATMA</div>
+            <div class="game-card" onclick="openGame('mayin')"><i class="fas fa-bomb"></i>MAYIN</div>
+        </div>
+    </div>
+
+    <div id="game-okey" class="screen">
+        <div class="header">🀄 OKEY 101 MASASI</div>
+        <div class="game-container">
+            <div class="display-box" id="okey-res">🀄 Bekleniyor...</div>
+            <button class="btn-action" onclick="playOkey()">TAŞ ÇEK</button>
+            <button class="btn-home" onclick="goMenu()">⬅ Lobiye Dön</button>
+        </div>
+    </div>
+
+    <div id="game-poker" class="screen">
+        <div class="header">♠️ İSKAMBİL / POKER</div>
+        <div class="game-container">
+            <div class="display-box card-view" id="card-res">🃏</div>
+            <button class="btn-action" onclick="playCards()">KART ÇEK</button>
+            <button class="btn-home" onclick="goMenu()">⬅ Lobiye Dön</button>
+        </div>
+    </div>
+
+    <div id="game-aviator" class="screen">
+        <div class="header">🚀 3D AVIATOR</div>
+        <div class="game-container">
+            <div class="display-box" id="av-res" style="color:red; font-weight:bold;">1.00x</div>
+            <button class="btn-action" id="av-btn" onclick="playAviator()">BAŞLAT</button>
+            <button class="btn-home" onclick="goMenu()">⬅ Lobiye Dön</button>
+        </div>
+    </div>
+
+    <div id="game-zar" class="screen">
+        <div class="header">🎲 ZAR ATMA</div>
+        <div class="game-container">
+            <div class="display-box" id="zar-res">🎲 ?</div>
+            <button class="btn-action" onclick="playZar()">ZAR AT</button>
+            <button class="btn-home" onclick="goMenu()">⬅ Lobiye Dön</button>
+        </div>
+    </div>
+
+    <div id="game-slot" class="screen">
+        <div class="header">🎰 SLOT VEGAS</div>
+        <div class="game-container">
+            <div class="display-box" id="slot-res">🍒|🍋|🔔</div>
+            <button class="btn-action" onclick="playSlot()">ÇEVİR</button>
+            <button class="btn-home" onclick="goMenu()">⬅ Lobiye Dön</button>
+        </div>
+    </div>
+
+    <div id="game-mayin" class="screen">
+        <div class="header">💣 MAYIN TARLASI</div>
+        <div class="game-container">
+            <div class="display-box" id="bomb-res">🎁</div>
+            <button class="btn-action" onclick="playMayin()">KUTU AÇ</button>
+            <button class="btn-home" onclick="goMenu()">⬅ Lobiye Dön</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function openGame(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('game-' + id).classList.add('active');
+        }
+
+        function goMenu() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('menu').classList.add('active');
+        }
+
+        // OKEY: Rastgele taş ve renk
+        function playOkey() {
+            const renkler = ['Kırmızı', 'Mavi', 'Siyah', 'Sarı'];
+            const sayi = Math.floor(Math.random() * 13) + 1;
+            const renk = renkler[Math.floor(Math.random() * 4)];
+            document.getElementById('okey-res').innerText = renk + " " + sayi;
+        }
+
+        // İSKAMBİL: Rastgele kart sembolü
+        function playCards() {
+            const cards = ['♠️', '♥️', '♣️', '♦️'];
+            const types = ['A', 'K', 'Q', 'J', '10'];
+            const res = cards[Math.floor(Math.random()*4)] + types[Math.floor(Math.random()*5)];
+            document.getElementById('card-res').innerText = res;
+        }
+
+        // AVIATOR: Katlayıcı simülasyonu
+        function playAviator() {
+            let mult = 1.00;
+            const btn = document.getElementById('av-btn');
+            btn.disabled = True;
+            let interval = setInterval(() => {
+                mult += 0.05;
+                document.getElementById('av-res').innerText = mult.toFixed(2) + "x";
+                if(Math.random() < 0.1) {
+                    clearInterval(interval);
+                    tg.showAlert("Uçak Kaçtı! Katlayıcı: " + mult.toFixed(2));
+                    btn.disabled = false;
+                }
+            }, 100);
+        }
+
+        // ZAR
+        function playZar() {
+            document.getElementById('zar-res').innerText = "🎲 " + (Math.floor(Math.random() * 6) + 1);
+        }
+
+        // SLOT
+        function playSlot() {
+            const s = ['🍒', '💎', '🍋', '🔔', '7️⃣'];
+            const r = () => s[Math.floor(Math.random()*s.length)];
+            document.getElementById('slot-res').innerText = `${r()}|${r()}|${r()}`;
+        }
+
+        // MAYIN
+        function playMayin() {
+            const res = Math.random() > 0.3 ? "💎 KAZANDIN" : "💣 BOMBA!";
+            document.getElementById('bomb-res').innerText = res;
+        }
+    </script>
+</body>
+</html>
